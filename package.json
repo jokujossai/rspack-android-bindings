@@ -1,0 +1,37 @@
+{
+  "name": "rspack-android-binding",
+  "version": "1.7.1",
+  "description": "Android aarch64 bindings for Rspack bundler",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Use GitHub Actions to build'",
+    "test": "echo 'No tests yet'",
+    "postinstall": "node postinstall.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/rspack-android-binding.git"
+  },
+  "keywords": [
+    "rspack",
+    "android",
+    "aarch64",
+    "bundler",
+    "native"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/rspack-android-binding/issues"
+  },
+  "homepage": "https://github.com/your-username/rspack-android-binding#readme",
+  "files": [
+    "rspack.android-arm64.node"
+  ],
+  "os": [
+    "android"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}
