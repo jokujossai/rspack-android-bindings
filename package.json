@@ -1,0 +1,34 @@
+{
+  "name": "@jokujossai/rspack-android-bindings",
+  "version": "1.7.1",
+  "description": "Android aarch64 bindings for Rspack bundler",
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jokujossai/rspack-android-bindings.git"
+  },
+  "keywords": [
+    "rspack",
+    "android",
+    "aarch64",
+    "bundler",
+    "native"
+  ],
+  "author": "Daniel Linjama <daniel@dev.linjama.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jokujossai/rspack-android-bindings/issues"
+  },
+  "homepage": "https://github.com/jokujossai/rspack-android-bindings#readme",
+  "files": [
+    "rspack.android-arm64.node"
+  ],
+  "os": [
+    "android"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}
