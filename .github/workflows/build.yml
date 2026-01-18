@@ -1,0 +1,189 @@
+name: Build Android ARM64 Binding
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Get Rspack version from package.json
+      id: rspack_version
+      run: |
+        VERSION=$(cat package.json | jq -r '.version')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Rspack version: $VERSION"
+        
+    - name: Setup Android NDK
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+        add-to-path: false
+        
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly-2025-11-13
+        targets: aarch64-linux-android
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
+        
+    - name: Clone Rspack repository
+      run: |
+        git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
+        
+    - name: Setup environment variables
+      run: |
+        echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+        echo "ANDROID_NDK_LATEST_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+        echo "CC_aarch64_linux_android=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
+        echo "CXX_aarch64_linux_android=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> $GITHUB_ENV
+        echo "AR_aarch64_linux_android=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+        echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
+        echo "CARGO_BUILD_JOBS=8" >> $GITHUB_ENV
+        
+    - name: Debug environment
+      run: |
+        echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+        echo "CC_aarch64_linux_android=$CC_aarch64_linux_android"
+        echo "Checking NDK structure..."
+        ls -la $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/ || true
+        find $ANDROID_NDK_HOME -name "aarch64-linux-android*-clang" -type f | head -5 || true
+        
+    - name: Configure Cargo for Android
+      run: |
+        mkdir -p ~/.cargo
+        cat > ~/.cargo/config.toml << EOF
+        [target.aarch64-linux-android]
+        linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+        ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        
+        [build]
+        jobs = 8
+        EOF
+        
+        # Also export as regular environment variables for the build
+        export CC_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+        export CXX_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++"
+        export AR_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        
+    - name: Modify Rspack for Android target
+      run: |
+        cd rspack-source
+        
+        # Add Android target to node binding package.json
+        jq '.napi.targets += ["aarch64-linux-android"]' crates/node_binding/package.json > temp.json && mv temp.json crates/node_binding/package.json
+        
+        # Install dependencies
+        pnpm install --frozen-lockfile
+        
+    - name: Build Android binding
+      run: |
+        cd rspack-source/crates/node_binding
+        
+        # Re-export all the environment variables to ensure they're available
+        export RUST_TARGET=aarch64-linux-android
+        export NAPI_TARGET=aarch64-linux-android
+        export ANDROID_NDK_LATEST_HOME=$ANDROID_NDK_HOME
+        export CC_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+        export CXX_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++"
+        export AR_aarch64_linux_android="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+        export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+        
+        # Debug: show that variables are set correctly
+        echo "CC_aarch64_linux_android=$CC_aarch64_linux_android"
+        
+        # Build using direct cargo build with features
+        cargo build --target aarch64-linux-android --release --features plugin,info-level
+        
+    - name: Copy built binary
+      run: |
+        cd rspack-source
+        
+        # Copy the built shared library and rename to Node.js format
+        if [ -f "target/aarch64-linux-android/release/librspack_node.so" ]; then
+          cp target/aarch64-linux-android/release/librspack_node.so ../rspack.android-arm64.node
+          echo "Successfully copied librspack_node.so to rspack.android-arm64.node"
+        else
+          echo "Error: librspack_node.so not found in expected location"
+          find . -name "librspack_node.*" -type f
+          exit 1
+        fi
+        
+        # Verify the binary was created and show info
+        ls -la ../rspack.android-arm64.node
+        file ../rspack.android-arm64.node
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rspack-android-arm64-binding
+        path: rspack.android-arm64.node
+        if-no-files-found: error
+        
+    - name: Create release info
+      run: |
+        echo "Built rspack.android-arm64.node for version ${{ steps.rspack_version.outputs.version }}" > release_info.txt
+        echo "Target: aarch64-linux-android" >> release_info.txt
+        echo "NDK: r25c" >> release_info.txt
+        echo "Built on: $(date)" >> release_info.txt
+        
+    - name: Upload release info
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-info
+        path: release_info.txt
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: rspack-android-arm64-binding
+        
+    - name: Get version from package.json
+      id: get_version
+      run: |
+        VERSION=$(cat package.json | jq -r '.version')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Publish release
+      run: |
+        # Configure git
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Create and checkout version branch
+        git checkout -b "v${{ steps.get_version.outputs.version }}"
+        
+        # Add the built binary
+        git add rspack.android-arm64.node
+        
+        # Commit the binary
+        git commit -m "release: add rspack.android-arm64.node for v${{ steps.get_version.outputs.version }}"
+        
+        # Create and push tag (force to override existing)
+        git tag -f "v${{ steps.get_version.outputs.version }}"
+        git push -f origin "refs/tags/v${{ steps.get_version.outputs.version }}"
