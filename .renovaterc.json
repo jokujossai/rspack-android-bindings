@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "prHourlyLimit": 0,
+  "enabledManagers": ["github-actions", "npm", "regex"],
+  "regexManagers": [
+    {
+      "fileMatch": ["^package\\.json$"],
+      "matchStrings": [
+        "\"version\": \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "@rspack/core",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    }
+  ]
+}
