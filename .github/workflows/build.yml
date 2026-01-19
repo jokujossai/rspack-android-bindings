@@ -53,7 +53,15 @@ jobs:
     - name: Clone Rspack repository
       run: |
         git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
-        
+
+    - name: Cache Cargo target
+      uses: actions/cache@v4
+      with:
+        path: rspack-source/target
+        key: cargo-android-${{ steps.rspack_version.outputs.version }}
+        restore-keys: |
+          cargo-android-
+
     - name: Setup environment variables
       run: |
         echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
