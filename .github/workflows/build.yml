@@ -40,11 +40,19 @@ jobs:
         add-to-path: false
         
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@master
+      uses: dtolnay/rust-toolchain@v1
       with:
         toolchain: nightly-2025-11-13
         targets: aarch64-linux-android
-        
+
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.9
+
+    - name: Configure sccache
+      run: |
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
