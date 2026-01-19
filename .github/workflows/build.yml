@@ -2,10 +2,20 @@ name: Build Android ARM64 Binding
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Force publish even if tag exists'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -168,8 +178,18 @@ jobs:
       run: |
         VERSION=$(cat package.json | jq -r '.version')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        
+
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.get_version.outputs.version }}$"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Publish release
+      if: steps.check_tag.outputs.exists == 'false' || inputs.publish == true
       run: |
         # Configure git
         git config user.name "github-actions[bot]"
