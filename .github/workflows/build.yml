@@ -55,7 +55,7 @@ jobs:
         git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
 
     - name: Cache Cargo target
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: rspack-source/target
         key: cargo-android-${{ steps.rspack_version.outputs.version }}
