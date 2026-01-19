@@ -146,7 +146,7 @@ jobs:
         file ../rspack.android-arm64.node
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: rspack-android-arm64-binding
         path: rspack.android-arm64.node
@@ -160,7 +160,7 @@ jobs:
         echo "Built on: $(date)" >> release_info.txt
         
     - name: Upload release info
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: build-info
         path: release_info.txt
@@ -177,7 +177,7 @@ jobs:
       uses: actions/checkout@v6
       
     - name: Download build artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: rspack-android-arm64-binding
         
