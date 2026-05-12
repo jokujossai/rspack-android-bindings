@@ -53,14 +53,21 @@ jobs:
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: latest
-        
     - name: Clone Rspack repository
       run: |
         git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
+
+    - name: Get pnpm version from Rspack
+      id: pnpm_version
+      run: |
+        VERSION=$(cat rspack-source/package.json | jq -r '.engines.pnpm // .packageManager | split("@")[-1]')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "pnpm version: $VERSION"
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: ${{ steps.pnpm_version.outputs.version }}
 
     - name: Cache Cargo target
       uses: actions/cache@v5
