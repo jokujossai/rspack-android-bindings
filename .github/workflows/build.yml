@@ -38,12 +38,24 @@ jobs:
       with:
         ndk-version: r25c
         add-to-path: false
-        
+
+    - name: Clone Rspack repository
+      run: |
+        git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
+
+    - name: Get Rust toolchain from Rspack
+      id: rust_toolchain
+      run: |
+        CHANNEL=$(grep -E '^channel\s*=' rspack-source/rust-toolchain.toml | sed -E 's/.*"(.*)".*/\1/')
+        echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+        echo "Rust channel: $CHANNEL"
+
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@v1
       with:
-        toolchain: nightly-2025-11-13
+        toolchain: ${{ steps.rust_toolchain.outputs.channel }}
         targets: aarch64-linux-android
+        components: rust-src
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@v0.0.10
@@ -52,10 +64,6 @@ jobs:
       run: |
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-
-    - name: Clone Rspack repository
-      run: |
-        git clone --depth 1 --branch v${{ steps.rspack_version.outputs.version }} https://github.com/web-infra-dev/rspack.git rspack-source
 
     - name: Get pnpm version from Rspack
       id: pnpm_version
