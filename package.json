@@ -1,6 +1,6 @@
 {
   "name": "@jokujossai/rspack-android-bindings",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Android aarch64 bindings for Rspack bundler",
   "scripts": {
     "postinstall": "node postinstall.js"
