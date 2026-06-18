@@ -23,7 +23,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       
     - name: Get Rspack version from package.json
       id: rspack_version
@@ -197,7 +197,7 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       
     - name: Download build artifact
       uses: actions/download-artifact@v8
