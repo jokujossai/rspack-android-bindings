@@ -78,7 +78,7 @@ jobs:
         version: ${{ steps.pnpm_version.outputs.version }}
 
     - name: Cache Cargo target
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: rspack-source/target
         key: cargo-android-${{ steps.rspack_version.outputs.version }}
